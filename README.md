@@ -16,6 +16,23 @@ Search engines are quite sensitive to website problems and can react with reduci
 * **Alert and Logging System:** Choose how and where to get notified when a check fails (console, email, or log files).
 * **Support for Delay and Status Settings:** Enable or disable specific checks and introduce delays between checks to avoid overloading the server.
 
+
+### Dependencies
+
+SEO Sentinel requires the following Python libraries:
+
+- **PyYAML** (`yaml`) – For reading and writing YAML configuration files.
+- **requests** – For making HTTP requests.
+- **BeautifulSoup4** – For parsing HTML content.
+- **lxml** – As the parser used by BeautifulSoup.
+
+To install the necessary dependencies, run the following command:
+
+```bash
+pip install pyyaml requests beautifulsoup4 lxml
+```
+
+
 ## Usage
 
 Users need to create a **configuration file** in YAML format, specifying the details of the checks to be performed. Below is a breakdown of the configuration options available.
@@ -36,7 +53,7 @@ You can design checks in two ways:
 * Look for something **unexpected** and set `alert_condition` to `any is true` to get alerted if it appears.
 
 
-### Check Configuration
+### Main check Configuration
 
 Every check configuration usually includes the following **standard parameters**:
 
