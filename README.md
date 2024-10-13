@@ -89,7 +89,7 @@ Each rule of these checks defines the specific search criteria and includes thes
 
 #### Example of a `html_search` check
 
-The following code looks in each URL for two possible unexpected things and creates an alert if "any is true":
+The following code looks in each resource for two possible unexpected things and creates an alert if "any is true":
 * typical non-canonical product URLs in links of a Shopify category page.
 * the absence (`count = "0"`) of a "rel=canonical" URL that matches with the checked url. This rule uses the special string `{{checked_url}}` in the parameter `attribute_literal`.
 
