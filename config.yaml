@@ -1,0 +1,103 @@
+project_name: "Test project"
+
+
+checks:
+  - name: "Shopify canonicalization"
+    type: "html_search"
+    enabled: true # true, false. Default: true
+    delay: 0
+    alert_condition: "any is true"
+    urls:
+      - "https://example.com/collections/classics"
+      - "https://example.com/collections/merch"
+    rules:
+      - name: "Non-canonical product URL in link"
+        selector: "a[href]"
+        attribute: "href"
+        attribute_regex: ".*/collections/.+/products/.*"
+        count: "1:"
+      - name: "Canonical URL not matching checked URL"
+        selector: "head link[rel='canonical']"
+        attribute: "href"
+        attribute_literal: "{{checked_url}}"
+        count: "0"
+
+
+
+
+  - name: "Meta descriptions"
+    type: "html_search"
+    enabled: true
+    delay: 0
+    alert_condition: "any is true"
+    urls:
+      - "https://example.com/"
+    rules:
+      - name: "Empty meta description"
+        selector: "head meta[name='description']"
+        attribute: "content"
+        attribute_literal: ""
+        count: "1:"
+
+
+
+
+  - name: "Changed robots.txt"
+    type: "content_match"
+    enabled: true
+    alert_condition: "any is false"
+    comparison_method: "exact" # "exact", "strip_whitespace". Default: "exact"
+    rules:
+      "https://example.com/robots.txt": "expected-robots.txt"
+
+        
+
+
+  - name: "Migration redirects"
+    type: "redirect"
+    enabled: true
+    base_url: "https://example.com"
+    delay: 0
+    alert_condition: "any is false"
+    status_codes: [301]
+    rules:
+      "/shirts.html": "/collections/shirts"
+      "/colorful-hawaiian-shirt.html": "/products/hawaiian-shirt"
+    rules_csv:
+      file: "redirects.csv"
+      has_header: true
+
+
+
+
+
+output:
+  timestamp:
+    enabled: false
+    format: "%Y-%m-%d %H-%M-%S %z"
+    frequency: 3 # 1 = Only at Project level, 2 = At Project and Check level, 3 = Every freakin' row.
+
+  destinations:
+    console:
+      enabled: true
+      log_level: "issues" # "all" or "issues"
+
+    email: # TODO: Implement email sending
+      enabled: true
+      send: "always" # "always", "issues_only"
+      recipients:
+        - "info@example.com"
+      subject: "SEO Sentinel report for {{project_name}}"
+      attachment_log_level: "all" # "all", "issues"
+
+    file: # TODO: Implement file logging
+      enabled: true
+      log_level: "all"
+      path: "output.log"
+      file_name: "{{timestamp}}-{{project_name}}.log"
+      file_mode: "new_file" # "append", "overwrite", "new_file"
+
+
+
+
+
