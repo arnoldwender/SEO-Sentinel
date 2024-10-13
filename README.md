@@ -73,9 +73,9 @@ Checks can have additional parameters, depending on the type of check.
 
 ### Usage of `html_search` or `xml_search` checks
 
-Besides the standard parameters of a check, types of checks include a parameter `urls` with the list of resources to check.
+Besides the standard parameters of a check, `html_search` and `xml_search` include a parameter `urls` with the list of resources to check.
 
-Each rule defines the specific criteria for a check and includes these parameters:
+Each rule of these checks defines the specific search criteria and includes these parameters:
 
 * **`name`**: The name of the rule.
 * **`selector`**: CSS selector used to locate the elements on the page.
