@@ -1,4 +1,5 @@
 import sys
+import os
 from enum import Enum
 import time
 import re
@@ -448,8 +449,10 @@ class ContentMatchCheck(BaseCheck):
 
 # Configuration handler class to parse the YAML configuration file
 class ConfigurationHandler:
-    def __init__(self, config_file):
-        with open(config_file, 'r') as file:
+    def __init__(self, config_file_path):
+        self.config_file_path = config_file_path
+
+        with open(self.config_file_path, 'r') as file:
             self.config = yaml.safe_load(file)
 
         self.project_name = self.config.get('project_name', 'Test Project')
@@ -461,8 +464,38 @@ class ConfigurationHandler:
     def get_output_options(self):
         return self.output_options
 
+    def resolve_path_from_config(self, relative_path):
+        config_dir = os.path.dirname(os.path.realpath(self.config_file_path))
+        
+        resolved_path = os.path.join(config_dir, relative_path)
+        
+        return os.path.realpath(resolved_path)
+
+
+    def resolve_path_in_dict(self, dict):
+        updated_rules = {}
+
+        for key, value in dict.items():
+            if not key.startswith(('http://', 'https://')):
+                resolved_key = self.resolve_path_from_config(key)
+            else:
+                resolved_key = key
+
+            if not value.startswith(('http://', 'https://')):
+                resolved_value = self.resolve_path_from_config(value)
+            else:
+                resolved_value = value
+
+            updated_rules[resolved_key] = resolved_value
+
+        return updated_rules
+
+
     def parse_csv_rules(self, csv_file, has_header=False):
         rules = {}
+
+        csv_file = self.resolve_path_from_config(csv_file)
+
         try:
             with open(csv_file, 'r') as file:
                 reader = csv.reader(file)
@@ -514,6 +547,11 @@ class ConfigurationHandler:
                 check = MarkupCheck(name, urls, rules, delay, alert_condition, output_options, base_url, parser)
             elif check_type == 'content_match':
                 rules = check_data['rules']
+
+                # If any of the URLs in a rule is a local file, the path is resolved
+                # to the absolute path using the configuration file path
+                rules = self.resolve_path_in_dict(rules)
+
                 comparison_method = check_data.get('comparison_method', 'exact')
                 check = ContentMatchCheck(name, rules, comparison_method, delay, alert_condition, output_options, base_url)
             else:

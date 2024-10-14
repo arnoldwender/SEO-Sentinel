@@ -35,7 +35,17 @@ pip install pyyaml requests beautifulsoup4 lxml
 
 ## Usage
 
-Users need to create a **configuration file** in YAML format, specifying the details of the checks to be performed. Below is a breakdown of the configuration options available.
+To run SEO Sentinel, use the following command in your terminal:
+
+```bash
+python seo-sentinel.py config.yaml
+```
+
+Users need to create a **configuration file** in YAML format, specifying the details of the checks to be performed.
+
+If the configuration file contains paths to **local files**, those paths are interpreted as relative to the directory where the configuration file is located.
+
+Below is a breakdown of the configuration options available.
 
 ### General Structure
 
@@ -91,7 +101,7 @@ Each rule of these checks defines the specific search criteria and includes thes
 
 The following code looks in each resource for two possible unexpected things and creates an alert if "any is true":
 * typical non-canonical product URLs in links of a Shopify category page.
-* the absence (`count = "0"`) of a "rel=canonical" URL that matches with the checked url. This rule uses the special string `{{checked_url}}` in the parameter `attribute_literal`.
+* the absence (`count: "0"`) of a "rel=canonical" URL that matches with the checked url. This rule uses the special string `{{checked_url}}` in the parameter `attribute_literal`.
 
 
 ```yaml
