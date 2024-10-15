@@ -269,7 +269,10 @@ output:
 
 ## Changelog
 
-### [v0.8.0] - 2024-10-13
+### [v.0.8.1] - 2024-10-14
+- Local paths are now relative to config file directory
+
+### [v.0.8.0] - 2024-10-13
 - First version.
 
 

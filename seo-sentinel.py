@@ -1,3 +1,6 @@
+__version__ = '0.8.1'
+__author__ = 'Enrico Altavilla'
+
 import sys
 import os
 from enum import Enum
@@ -9,11 +12,6 @@ import csv
 import requests
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
-
-
-# Global variables for version number and author
-__version__ = '0.8'
-__author__ = 'Enrico Altavilla'
 
 
 
