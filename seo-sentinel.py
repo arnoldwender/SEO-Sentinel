@@ -131,8 +131,6 @@ class Reporter:
         elif output_type == EventType.CHECK_FAILED:
             self.log_check_failed(message)
 
-
-
     def report_info(self, scope, message):
         self.info = True
         self.handle_output(scope, message, EventType.INFO)
@@ -625,3 +623,12 @@ if __name__ == "__main__":
 
     # Ending message
     reporter.report_info(Scope.PROJECT, f"SEO Sentinel for project '{project_name}' finished.")
+
+    # Sent the report if the email option is enabled
+
+    if output_options.get('destinations', {}).get('email', {}).get('enabled', False):
+        try:
+            import emailreporter as er
+            er.send_report(reporter, output_options.get('destinations', {}).get('email', {}))
+        except Exception as e:
+            reporter.report_warning(Scope.PROJECT, f"Error sending email report: {str(e)}")
