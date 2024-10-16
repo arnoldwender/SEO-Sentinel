@@ -59,7 +59,8 @@ checks:
     base_url: "https://example.com"
     delay: 0
     alert_condition: "any is false"
-    status_codes: [301]
+    expected_redirect_status: [301]
+    max_redirects: 1
     rules:
       "/shirts.html": "/collections/shirts"
       "/colorful-hawaiian-shirt.html": "/products/hawaiian-shirt"

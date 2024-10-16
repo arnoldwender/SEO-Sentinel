@@ -1,4 +1,4 @@
-__version__ = '0.8.1'
+__version__ = '0.8.2'
 __author__ = 'Enrico Altavilla'
 
 import sys
@@ -205,10 +205,12 @@ class BaseCheck:
 
 
 class RedirectCheck(BaseCheck):
-    def __init__(self, name, rules, status_codes, delay, alert_condition, output_options, base_url=None):
+    def __init__(self, name, rules, delay, alert_condition, output_options, base_url=None, expected_redirect_status=[301], max_redirects=5, expected_resource_status=[]):
         super().__init__(name, delay, alert_condition, output_options, base_url)
         self.rules = rules
-        self.status_codes = status_codes
+        self.expected_redirect_status = expected_redirect_status
+        self.max_redirects = max_redirects
+        self.expected_resource_status = expected_resource_status
 
     def apply(self):
         issues = {}
@@ -216,26 +218,17 @@ class RedirectCheck(BaseCheck):
 
         reporter.report_info(Scope.CHECK, f"Starting redirect check for '{self.name}'...")
 
-        for url, expected_url in self.rules.items():
+        for url, expected_destination in self.rules.items():
             if base_url:
                 url = self.normalize_url(base_url, url)
-            try:
-                response = requests.get(url, allow_redirects=False)
-                status_code = response.status_code
-                headers = response.headers
-                http_resource = HTTPResource(url, status_code, headers, response.text)
-                res = self.check_redirect(http_resource, expected_url)
-                issues[url] = res
-            except requests.RequestException as e:
-                reporter.report_failed(Scope.ROW, f"{self.name}: HTTP error for {url}: {str(e)}")
-                issues[url] = True
-            except Exception as e:
-                reporter.report_failed(Scope.ROW, f"{self.name}: Unexpected error for {url}: {str(e)}")
-                issues[url] = True
-            finally:
-                time.sleep(self.delay)
 
-        if True in issues.values():
+            res = self.check_redirect(url, expected_destination)
+            issues[url] = res
+
+            time.sleep(self.delay)
+
+        # Evaluate the condition for the alert
+        if self.evaluate_alert_condition(issues):
             reporter.report_warning(Scope.CHECK, f"{self.name}: Redirect check failed for one or more URLs.")
         else:
             reporter.report_info(Scope.CHECK, f"{self.name}: Redirect check passed for all URLs.")
@@ -243,30 +236,70 @@ class RedirectCheck(BaseCheck):
         reporter.report_info(Scope.CHECK, f"Finished redirect check for '{self.name}'.")
 
 
-    def check_redirect(self, resource, expected_location):
-        status_code = resource.status_code
-        location_header = resource.headers.get('Location')
+
+    def check_redirect(self, start_url, expected_destination):
+
+        expected_destination = self.normalize_url(start_url, expected_destination)
+
         issues = ""
+        current_url = start_url
+        hops = 0
 
-        if status_code not in self.status_codes:
-            issues += f"Status code {status_code} does not match expected status. "
+        try:
+            while hops <= self.max_redirects:
+                # Perform the HTTP request without following redirects automatically
+                response = requests.get(current_url, allow_redirects=False)
+                status_code = response.status_code
 
-        if location_header:
-            location_header = self.normalize_url(resource.request_url, location_header)
-        else:
-            issues += "Location header not found. "
+                # Use requests' built-in properties to check if the response is a redirect
+                if response.is_redirect or response.is_permanent_redirect:
+                    # Check if the status code is one of the acceptable redirect status codes
+                    if status_code not in self.expected_redirect_status:
+                        issues += f"Status code {status_code} is a redirect but not an acceptable one. "
+                        break
 
-        expected_location = self.normalize_url(resource.request_url, expected_location)
+                    # Get the Location header to find the next URL
+                    location_header = response.headers.get('Location')
+                    if not location_header:
+                        issues += "Location header not found in the response. "
+                        break
 
-        if location_header != expected_location:
-            issues += f"Location header '{location_header}' does not match expected '{expected_location}'. "
+                    # Normalize the next URL
+                    location_header = self.normalize_url(current_url, location_header)
 
-        if self.evaluate_alert_condition(not bool(issues)):
-            reporter.report_failed(Scope.ROW, f"{self.name}: Check failed for '{resource.request_url}'. Reason: {issues}")
-            return True
-        else:
-            reporter.report_passed(Scope.ROW, f"{self.name}: Check passed for '{resource.request_url}'")
-            return False
+                    # Continue to the next hop
+                    current_url = location_header
+                    hops += 1
+
+                else:
+                    # The response is not a redirect, it must be a final status code
+                    if current_url != expected_destination:
+                        issues += f"Final destination '{current_url}' does not match expected '{expected_destination}'. "
+                        break
+
+                    if self.expected_resource_status and status_code not in self.expected_resource_status:
+                        # Final response did not match the expected status
+                        issues += f"Final status code {status_code} does not match expected {self.expected_resource_status}. "
+                        break
+                    else:
+                        # Success: the final status code is one of the expected codes
+                        reporter.report_passed(Scope.ROW, f"{self.name}: Redirect check passed for '{current_url}'.")
+                        return True  # No issues
+
+
+            # If we exit the loop, it means we either hit the max redirects or found an issue
+            if hops > self.max_redirects:
+                issues += f"Max redirects exceeded ({self.max_redirects}). "
+
+            # Report any accumulated issues
+            if issues:
+                reporter.report_failed(Scope.ROW, f"{self.name}: Redirect check failed for '{start_url}'. Reason: {issues}")
+                return False  # There were issues
+
+        except requests.RequestException as e:
+            reporter.report_failed(Scope.ROW, f"{self.name}: HTTP request failed for '{start_url}'. Exception: {str(e)}")
+            return False  # There were issues
+
 
 
 
@@ -525,14 +558,16 @@ class ConfigurationHandler:
 
             if check_type == 'redirect':
                 rules = check_data.get('rules', {})
-                status_codes = check_data.get('status_codes', [301])
+                expected_redirect_status = check_data.get('expected_redirect_status', [301])
+                max_redirects = check_data.get('max_redirects', 5)
+                expected_resource_status = check_data.get('expected_resource_status', [])
                 rules_csv = check_data.get('rules_csv', None)
                 if rules_csv:
                     csv_file = rules_csv.get('file', None)
                     has_header = rules_csv.get('has_header', False)
                     if csv_file:
                         rules.update(self.parse_csv_rules(csv_file, has_header))
-                check = RedirectCheck(name, rules, status_codes, delay, alert_condition, output_options, base_url)
+                check = RedirectCheck(name, rules, delay, alert_condition, output_options, base_url, expected_redirect_status, max_redirects, expected_resource_status)
             elif check_type == 'html_search':
                 urls = check_data['urls']
                 rules = check_data['rules']

@@ -164,9 +164,13 @@ Besides the standard parameters of a check, this check uses the following parame
 
 - **`base_url`**: The base URL to be prepended to the *source* paths in the `rules`.
 
-- **`status_codes`**: The list of acceptable HTTP status codes for the redirects (e.g., `[301,302]` for both permanent and temporary redirects).
+- **`expected_redirect_status`**: The list of acceptable HTTP status codes for a redirect (e.g., `[301,302]` for both permanent and temporary redirects).
 
-- **`rules`**: Defines the source and destination URLs for the redirects. The left side is the old path, and the right side is the new location.
+- **`max_redirects`**: The maximum acceptable number of hops in a redirect chain.
+
+- **`expected_resource_status`**: If this list is provided, the HTTP status code of the destination resource will be checked and the check will fail if the detected status isn't in the list (e.g., `[200]` to check if the destination resource exists).
+
+- **`rules`**: Defines the source and destination URLs for the redirects. The left side is the old URL, and the right side is the new URL.
 
 - **`rules_csv`**: Specifies a CSV file that contains additional redirection rules. 
   - **`file`**: Path to the CSV file.
@@ -184,7 +188,8 @@ Here is how a check for the redirects of a migration to a Shopify website might 
     base_url: "https://example.com"
     delay: 0
     alert_condition: "any is false"
-    status_codes: [301]
+    expected_redirect_status: [301]
+    max_redirects: 1
     rules:
       "/shirts.html": "/collections/shirts"
       "/colorful-hawaiian-shirt.html": "/products/hawaiian-shirt"
@@ -268,6 +273,9 @@ output:
 ```
 
 ## Changelog
+
+### [v.0.8.2] - 2024-10-14
+- Improved redirect check with a maximum number of acceptable redirect "hops" and the expected HTTP status of the destination resource.
 
 ### [v.0.8.1] - 2024-10-14
 - Local paths are now relative to config file directory
