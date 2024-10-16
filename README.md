@@ -274,7 +274,7 @@ output:
 
 ## Changelog
 
-### [v.0.8.2] - 2024-10-14
+### [v.0.8.2] - 2024-10-16
 - Improved redirect check with a maximum number of acceptable redirect "hops" and the expected HTTP status of the destination resource.
 
 ### [v.0.8.1] - 2024-10-14
