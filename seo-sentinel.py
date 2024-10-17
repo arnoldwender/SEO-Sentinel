@@ -216,7 +216,7 @@ class RedirectCheck(BaseCheck):
         issues = {}
         base_url = self.base_url
 
-        reporter.report_info(Scope.CHECK, f"Starting redirect check for '{self.name}'...")
+        reporter.report_info(Scope.CHECK, f"Starting redirect check for '{self.name}' ({len(self.rules)} rules)...")
 
         for url, expected_destination in self.rules.items():
             if base_url:
@@ -270,6 +270,14 @@ class RedirectCheck(BaseCheck):
                     # Continue to the next hop
                     current_url = location_header
                     hops += 1
+
+                    if not self.expected_resource_status:
+                        # If the expected resource status is not set, we directly check if the location header is the expected destination. This can save us a request.
+                        if current_url == expected_destination:
+                            reporter.report_passed(Scope.ROW, f"{self.name}: Redirect check passed for '{current_url}'.")
+                            return True
+
+                        
 
                 else:
                     # The response is not a redirect, it must be a final status code
