@@ -106,7 +106,7 @@ class Reporter:
         # Prepend the timestamp to the message if enabled
         timestamp = self.output_options.get('timestamp', False)
         if timestamp.get('enabled', False):
-            if scope <= timestamp.get('frequency', 3):
+            if scope.value <= timestamp.get('frequency', 3):
                 timestamp_format = timestamp.get('format', '%Y-%m-%d %H-%M-%S %z %Z')
                 message = f"{time.strftime(timestamp_format)} {message}"
 
